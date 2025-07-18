@@ -1,0 +1,63 @@
+$w.onReady(function () {
+  $w("#caloriesText").hide();
+
+  $w("#genderDropdown").options = [
+    { label: "Female", value: "1" },
+    { label: "Male", value: "0" }
+  ];
+
+  $w("#predictBtn").onClick(() => {
+    const age = Number($w("#ageInput").value);
+    const height = Number($w("#heightInput").value);
+    const weight = Number($w("#weightInput").value);
+    const duration = Number($w("#durationInput").value);
+    const heartRate = Number($w("#hrInput").value);
+    const gender = Number($w("#genderDropdown").value);
+
+    if (!age || !height || !weight || !duration || !heartRate || isNaN(gender)) {
+      $w("#caloriesText").text = "⚠️ Please fill in all fields correctly.";
+      $w("#caloriesText").show();
+      return;
+    }
+
+    const heightM = height / 100;
+    const bmi = weight / (heightM * heightM);
+
+    const payload = {
+      Age: age,
+      Gender: gender,
+      Height: height,
+      Weight: weight,
+      BMI: bmi,
+      Duration: duration,
+      Heart_Rate: heartRate
+    };
+
+    $w("#caloriesText").text = "⏳ Calculating...";
+    $w("#caloriesText").show();
+
+    fetch("https://model-deployment-1-58cv.onrender.com/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.predicted_calories !== undefined) {
+        const calories = data.predicted_calories.toFixed(1);
+        const level = data.intensity_level;
+        const description = data.intensity_description;
+
+        $w("#caloriesText").text = 
+          `🔥 Calories Burnt: ${calories} kcal\n` +
+          `💪 Intensity Level: ${level}\n📝 ${description}`;
+      } else {
+        $w("#caloriesText").text = `⚠️ Error: ${data.error || "Invalid response from server."}`;
+      }
+    })
+    .catch(err => {
+      console.error("API error:", err);
+      $w("#caloriesText").text = "🚫 Server error. Please try again later.";
+    });
+  });
+});
